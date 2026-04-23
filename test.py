@@ -9,7 +9,9 @@ from PIL import Image, ImageTk
 #shadow sensitivity
 shadowThreshold = 80
 
-
+#***********************************
+#Example code to show video feed in tkinter window
+#***********************************
 # def show_frame():
 #     ret, frame = cap.read()
 #     if ret:
@@ -19,6 +21,12 @@ shadowThreshold = 80
 #         label.imgtk = imgtk  # Crucial: Prevent garbage collection
 #         label.configure(image=imgtk)
 #     label.after(15, show_frame) # Refresh rate
+
+
+#***********************************
+#Object and shadow dimension functions
+#***********************************
+
 def get_object_dimensions_grid(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -58,6 +66,7 @@ def get_object_dimensions_grid(frame):
 
     return boxes_x, boxes_y
 def get_shadow_grid_length(frame, shadowThreshold=80):
+
     # Convert to grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -106,24 +115,23 @@ def get_shadow_grid_length(frame, shadowThreshold=80):
     boxes_y = h / grid_y
 
     return boxes_x, boxes_y
+def get_object_dimensions():
+    cap = cv2.VideoCapture(0)
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        cv2.imshow("Getting object dimensions", frame)
+        if cv2.waitKey(1) == ord('q'):
+            break
+        result = get_object_dimensions_grid(frame)
 
+    cap.release()
+    return result
 
 #***********************************
 #Gui Functions
-
-# def get_object_dimensions():
-#     cap = cv2.VideoCapture(0)
-#     while True:
-#         ret, frame = cap.read()
-#         if not ret:
-#             break
-#         cv2.imshow("Getting object dimensions", frame)
-#         if cv2.waitKey(1) == ord('q'):
-#             break
-#         result = get_shadow_grid_length(frame)
-
-#     cap.release()
-#     return result
+#***********************************
 # def get_object_button_clicked():
 #     object_y, object_x = get_object_dimensions()
 #     print(f"Object dimensions: {object_x:.1f} grid boxes (x), {object_y:.1f} grid boxes (y)")
@@ -143,12 +151,13 @@ def get_shadow_grid_length(frame, shadowThreshold=80):
 
 
 
-#Main Program
-
+#***********************************
+#Main code to run angle estimation
+#***********************************
 if __name__ == "__main__":
    
     #Get object dimensions (in grid boxes)
-    object_y, object_x = get_object_dimensions_grid()
+    object_y, object_x = get_object_dimensions()
     angle=None
 
     #Open new window to estimate angle
