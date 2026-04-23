@@ -19,7 +19,44 @@ shadowThreshold = 80
 #         label.imgtk = imgtk  # Crucial: Prevent garbage collection
 #         label.configure(image=imgtk)
 #     label.after(15, show_frame) # Refresh rate
+def get_object_dimensions_grid(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    # --- Object mask ---
+    _, mask = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY_INV)
+    kernel = np.ones((5,5), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+
+    obj = max(contours, key=cv2.contourArea)
+    x, y, w, h = cv2.boundingRect(obj)
+
+    # --- Grid spacing ---
+    edges = cv2.Canny(gray, 50, 150)
+
+    vertical_profile = np.sum(edges, axis=0)
+    horizontal_profile = np.sum(edges, axis=1)
+
+    def get_spacing(profile):
+        peaks = np.where(profile > np.mean(profile))[0]
+        if len(peaks) < 2:
+            return None
+        return int(np.median(np.diff(peaks)))
+
+    grid_x = get_spacing(vertical_profile)
+    grid_y = get_spacing(horizontal_profile)
+
+    if grid_x is None or grid_y is None:
+        return None
+
+    # Convert to grid boxes
+    boxes_x = w / grid_x
+    boxes_y = h / grid_y
+
+    return boxes_x, boxes_y
 def get_shadow_grid_length(frame, shadowThreshold=80):
     # Convert to grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -71,40 +108,47 @@ def get_shadow_grid_length(frame, shadowThreshold=80):
     return boxes_x, boxes_y
 
 
-def get_object_dimensions():
-    cap = cv2.VideoCapture(0)
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        cv2.imshow("Getting object dimensions", frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
-        result = get_shadow_grid_length(frame)
+#***********************************
+#Gui Functions
 
-    cap.release()
-    return result
-def get_object_button_clicked():
-    object_y, object_x = get_object_dimensions()
-    print(f"Object dimensions: {object_x:.1f} grid boxes (x), {object_y:.1f} grid boxes (y)")
+# def get_object_dimensions():
+#     cap = cv2.VideoCapture(0)
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
+#         cv2.imshow("Getting object dimensions", frame)
+#         if cv2.waitKey(1) == ord('q'):
+#             break
+#         result = get_shadow_grid_length(frame)
 
-def define_gui():
-    root = tk.Tk()
-    root.title("Shadow Angle Estimation")
-    get_object = tk.Button(root, text="Get Object Dimensions", command=get_object_button_clicked)
+#     cap.release()
+#     return result
+# def get_object_button_clicked():
+#     object_y, object_x = get_object_dimensions()
+#     print(f"Object dimensions: {object_x:.1f} grid boxes (x), {object_y:.1f} grid boxes (y)")
+
+# def define_gui():
+#     root = tk.Tk()
+#     root.title("Shadow Angle Estimation")
+#     get_object = tk.Button(root, text="Get Object Dimensions", command=get_object_button_clicked)
 
 
 
     # Create a label to display the video feed
-    label = tk.Label(root)
-    label.pack()
+    # label = tk.Label(root)
+    # label.pack()
 
-    return root, label
+    # return root, label
+
+
+
+#Main Program
 
 if __name__ == "__main__":
    
     #Get object dimensions (in grid boxes)
-    object_y, object_x = get_object_dimensions()
+    object_y, object_x = get_object_dimensions_grid()
     angle=None
 
     #Open new window to estimate angle
